@@ -94,3 +94,5 @@ class testOrderService(unittest.TestCase):
         empty_cart = ShoppingCart(self.customer, self.discount_service) #creat an empty cart     
         self.assertTrue(self.order_service.place_order(empty_cart, self.credit_card_number))  # Current implementation would return True for empty cart
         self.payment_service.process_payment.assert_called_once_with(self.credit_card_number, empty_cart.calculate_total())
+
+    
