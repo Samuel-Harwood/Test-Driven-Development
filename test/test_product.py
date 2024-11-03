@@ -55,7 +55,7 @@ class TestProducts(unittest.TestCase):
 
 
    #These tests WILL fail. As there is no error handling for if the stock is set to a negative number
-   @unittest.expectedFailure
+   @unittest.expectedFailure 
    def test_set_get_stock_fail(self):
       with self.assertRaises(ValueError, msg="Setting stock to a negative value should raise ValueError"):
          self.product_one.set_stock(-30)
@@ -77,7 +77,7 @@ class TestProducts(unittest.TestCase):
 
    def test_reduce_stock_invalid_input(self):
       with self.assertRaises(TypeError, msg="Reducing stock with a non-integer value should raise TypeError"):
-         self.product_two.reduce_stock("Not a number")
+         self.product_two.reduce_stock("1") #invalid type
 
  
 
