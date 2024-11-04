@@ -15,12 +15,12 @@ class TestProducts(unittest.TestCase):
       self.product_one = Product("Test Product", 4.99, 50) #In Stock product
       self.product_two = Product("Test Product 2", 9.99, 0) #Sold out product
        
-   #Creating products which should not exist. Negative price or negative stock
-   #This is not checked by the program
-   @unittest.expectedFailure #I set it to exectedFailure because the test should fail
+   #Creating products which should not exist. Negative price or negative stock This is not checked by the program,
+   # as it is just creates a product which is done by the initialiser. However it does show the importance of checking for human error
+   #Perhaps a bit obvious but still important to note, and a good possible addition to the program!
    def test_product_creation_invalid_values(self):
       with self.assertRaises(ValueError, msg="Creating product with negative price should raise ValueError"):
-         Product("Invalid Product", -5.99, 10)
+         invalid_product = Product("Invalid Product", -5.99, 10)
       
       with self.assertRaises(ValueError, msg="Creating product with negative stock should raise ValueError"):
          Product("Invalid Product", 5.99, -10)
@@ -39,7 +39,6 @@ class TestProducts(unittest.TestCase):
       self.assertEqual(self.product_one.get_stock(), 50, "Available stock of product")
       self.assertNotEqual(self.product_two.get_stock(), 50, "Available stock of second product is not 50")
 
-
    #Setter setstock and verifying with Getter getstock
    def test_set_get_stock(self):
       #verify initial values
@@ -55,11 +54,9 @@ class TestProducts(unittest.TestCase):
 
 
    #These tests WILL fail. As there is no error handling for if the stock is set to a negative number
-   @unittest.expectedFailure 
    def test_set_get_stock_fail(self):
-      with self.assertRaises(ValueError, msg="Setting stock to a negative value should raise ValueError"):
-         self.product_one.set_stock(-30)
-
+      self.product_one.set_stock(-30)
+      self.assertEqual(self.product_one.get_stock(), -30) #This should not be possible, but passes!
       with self.assertRaises(ValueError, msg="Setting stock to a negative value should raise ValueError"):
          self.product_two.set_stock(-200) 
 
@@ -74,10 +71,13 @@ class TestProducts(unittest.TestCase):
       with self.assertRaises(ValueError, msg="Reducing stock to a negative value should raise ValueError"):
          self.product_one.reduce_stock(1) #invalid (from 0 to -1)
 
-
+   #Did not expect this to pass, it seems with a non-int type, the stock just remains the same.
+   #You learn something new everyday
    def test_reduce_stock_invalid_input(self):
       with self.assertRaises(TypeError, msg="Reducing stock with a non-integer value should raise TypeError"):
-         self.product_two.reduce_stock("1") #invalid type
+         self.product_two.reduce_stock("five hundred") #invalid type
+      self.assertEqual(self.product_one.get_stock(), 50, "Stock should remain unchanged after invalid input.")
+
 
  
 
