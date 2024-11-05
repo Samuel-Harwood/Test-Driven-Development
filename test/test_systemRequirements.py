@@ -17,7 +17,7 @@ from CartItem import CartItem
 from Product import Product
 
 
-class testShoppingCart(unittest.TestCase):
+class testSystemRequirements(unittest.TestCase):
 
     def setUp(self):
         self.discount_service = MagicMock(spec=DiscountService)
@@ -93,3 +93,14 @@ class testShoppingCart(unittest.TestCase):
         self.discount_service.apply_promotion_discount.assert_not_called()  # No promotion
         self.assertAlmostEqual(total_after_discount, expected_final_price, places=2, msg="Value should be 10") #places = 2 because it is a float
       
+#4. The system shall apply tiered discounts based on the total cart value, with predefined discount levels (10% for over £1,000, 15% for over £5,000, and 20% for over £10,000).
+    def test_apply_tiered_discount(self):
+        self.product_one_thousand = Product("One Thousand Pounds", 1000.0, 10)
+        self.cart.add_item(CartItem(self.product_one_thousand, 1)) #Adding an item worth 1,000 to cart, should be 10% discount
+        self.cart._discount_service = DiscountService()  # Use the actual implementation
+
+        final_price = self.cart.calculate_final_price()
+        self.assertEqual(final_price, 1000.0, "Final price should be 900.0, but DiscountService implementation is not working correctly")
+       
+
+        

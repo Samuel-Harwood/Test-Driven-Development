@@ -18,10 +18,11 @@ class TestProducts(unittest.TestCase):
    #Creating products which should not exist. Negative price or negative stock This is not checked by the program,
    # as it is just creates a product which is done by the initialiser. However it does show the importance of checking for human error
    #Perhaps a bit obvious but still important to note, and a good possible addition to the program!
-   def test_product_creation_invalid_values(self):
+   def test_product_creation_invalid_price(self):
       with self.assertRaises(ValueError, msg="Creating product with negative price should raise ValueError"):
          invalid_product = Product("Invalid Product", -5.99, 10)
-      
+   
+   def test_product_creation_invalid_stock(self):
       with self.assertRaises(ValueError, msg="Creating product with negative stock should raise ValueError"):
          Product("Invalid Product", 5.99, -10)
 
@@ -82,7 +83,5 @@ class TestProducts(unittest.TestCase):
  
 
 
-if __name__ == "__main__":
-    unittest.main()
 
    
