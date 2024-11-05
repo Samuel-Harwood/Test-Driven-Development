@@ -20,7 +20,7 @@ class TestProducts(unittest.TestCase):
    #Perhaps a bit obvious but still important to note, and a good possible addition to the program!
    def test_product_creation_invalid_price(self):
       with self.assertRaises(ValueError, msg="Creating product with negative price should raise ValueError"):
-         invalid_product = Product("Invalid Product", -5.99, 10)
+         Product("Invalid Product", -5.99, 10)
    
    def test_product_creation_invalid_stock(self):
       with self.assertRaises(ValueError, msg="Creating product with negative stock should raise ValueError"):

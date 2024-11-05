@@ -76,9 +76,6 @@ class testOrderService(unittest.TestCase):
         mock_payment_service.process_payment.return_value = False  
         order_service = OrderService(mock_payment_service, mock_inventory_service)  #Using local order service for the mocks      
         self.assertFalse(order_service.place_order(self.cart, self.credit_card_number))
-        # self.assertFalse(self.order_service.place_order(self.cart, self.credit_card_number)) # Use the order service already created in setUp
-        # mock_process_payment.assert_called_once_with(self.credit_card_number, self.cart.calculate_total())
-        # mock_update_stock.assert_called_once_with(self.cart_item) #Now we check that even though payment failed, the stock of the item was still updated
 
 
     #Test the order service when placing an order for an out of stock item
@@ -91,7 +88,7 @@ class testOrderService(unittest.TestCase):
 
     #Test what happens when cart is empy
     def test_empty_cart(self):
-        empty_cart = ShoppingCart(self.customer, self.discount_service) #creat an empty cart     
+        empty_cart = ShoppingCart(self.customer, self.discount_service) #create an empty cart     
         self.assertTrue(self.order_service.place_order(empty_cart, self.credit_card_number))  # Current implementation would return True for empty cart
         self.payment_service.process_payment.assert_called_once_with(self.credit_card_number, empty_cart.calculate_total())
 
