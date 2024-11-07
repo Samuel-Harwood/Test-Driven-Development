@@ -37,25 +37,11 @@ class testOrderService(unittest.TestCase):
 
 
 
-    def test_place_order_success(self):
-        #Set payment value and stock value to true
-        self.payment_service.process_payment.return_value = True
-        self.inventory_service.update_stock.return_value = True
-        self.assertTrue(self.order_service.place_order(self.cart, self.credit_card_number))
-
-        #Assert that the payment process was called ONCE with the cart and card number in Setup
-        self.payment_service.process_payment.assert_called_once_with(self.credit_card_number, self.cart.calculate_total())
-
-        #Both options below work, but as update stock takes one parameter, it is best to reduce coupling where unneccessary
-        self.inventory_service.update_stock.assert_called_once_with(self.cart_item)
-        #self.inventory_service.update_stock(self.cart_item.product, self.cart_item.quantity)
-
-
     #Just testing how to use mocks :)
     @patch('src.PaymentService.PaymentService') 
     @patch('src.InventoryService.InventoryService')
-    #Same as previous function but without using 
-    def test_place_order_success_mock(self, mock_inventory_service, mock_payment_service):
+    #Same as previous function but without using mocks
+    def test_place_order_success(self, mock_inventory_service, mock_payment_service):
         #This could be added in the decorator, but everytime i tried it broke
         mock_payment_service.process_payment.return_value = True
         mock_inventory_service.update_stock.return_value = True
@@ -77,6 +63,19 @@ class testOrderService(unittest.TestCase):
         order_service = OrderService(mock_payment_service, mock_inventory_service)  #Using local order service for the mocks      
         self.assertFalse(order_service.place_order(self.cart, self.credit_card_number))
 
+        #Even thought the payment fails, stock is still being updated? is this expected???
+        mock_inventory_service.update_stock.assert_not_called() 
+        mock_payment_service.process_payment.assert_not_called(self.credit_card_number, self.cart.calculate_total()) #Proving it was called
+
+
+        
+    #Just to prove it can be done without mocks
+
+    def test_failed_order_not_update_stock(self):
+        self.payment_service.process_payment.return_value = False        
+        self.assertFalse(self.order_service.place_order(self.cart, self.credit_card_number))
+        self.inventory_service.update_stock.assert_not_called() #This shouldn't be called, as the order wasn't placed
+
 
     #Test the order service when placing an order for an out of stock item
     def test_insufficient_stock_fail(self):
@@ -86,10 +85,12 @@ class testOrderService(unittest.TestCase):
         self.assertFalse(self.order_service.place_order(self.cart, self.credit_card_number)) #Make sure an order isn't placed
         self.inventory_service.update_stock.assert_called_once_with(self.cart_item) #Verify update stock was called, and caused the side effect :)
 
-    #Test what happens when cart is empy
+
+
+
+    #When cart is empty, an order shouldnt be able to be placed
     def test_empty_cart(self):
         empty_cart = ShoppingCart(self.customer, self.discount_service) #create an empty cart     
-        self.assertTrue(self.order_service.place_order(empty_cart, self.credit_card_number))  # Current implementation would return True for empty cart
+        self.assertFalse(self.order_service.place_order(empty_cart, self.credit_card_number))  # Current implementation would return True for empty cart
         self.payment_service.process_payment.assert_called_once_with(self.credit_card_number, empty_cart.calculate_total())
 
-    

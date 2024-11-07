@@ -2,6 +2,7 @@ import unittest
 import sys, os
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
+from io import StringIO
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
@@ -221,3 +222,85 @@ class testSystemRequirements(unittest.TestCase):
         #Its about £150 out, so with the logic corrected, might actually return True
 
 #9. The system shall print a detailed receipt summarizing the items in the cart, the total price before discounts, and the final price after all applicable discounts. 
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_print_receipt(self, output):
+        #A purchase of a keyboard, with no active discounts or promotions by a REGULAR customer, should be full price
+        discount = DiscountService()
+        cart = ShoppingCart(self.customer, discount)
+        cart.add_item(CartItem(self.product_three, 1))
+
+
+        cart.set_promotion_active(True)
+        cart.apply_coupon_code("") 
+        cart.print_receipt()
+        
+        output = output.getvalue()
+        self.assertIn("Shopping Cart Receipt", output)
+        self.assertIn("Keyboard - 1 x $45.00", output)
+        expected_total_before_discount = cart.calculate_total()
+
+        expected_final_price = expected_total_before_discount  
+
+        self.assertIn(f"Total before discount: ${expected_total_before_discount:.2f}", output)
+        self.assertIn(f"Final price after discounts: ${expected_final_price:.2f}", output)   #Error: Final price after discounts: $33.75 (SHOULD BE 45!)
+
+        #This is the example from the brief!
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_print_receipt_coursework_example(self, output):
+        #VIP Customer. 1 laptop £1000 and 1 mouse £100. SAVE50 Coupon. 
+        #£574.75
+        self.customer = Customer("Samuel Harwood", CustomerType.VIP)  # VIP
+        cart = ShoppingCart(self.customer, DiscountService())
+
+        # Adding a laptop and mouse to the cart
+        cart.add_item(CartItem(self.product_one, 1))  
+        product_two = Product("Mouse", 100, 10) #Need to make this locally as the price is defferent in setup
+        cart.add_item(CartItem(product_two, 1))   
+
+        cart.set_promotion_active(True)
+        cart.apply_coupon_code("SAVE50") 
+        cart.print_receipt()
+
+        output = output.getvalue()
+        
+        # Assertions on receipt contents
+        self.assertIn("Shopping Cart Receipt", output)
+        self.assertIn("Laptop - 1 x $1000.00", output)
+        self.assertIn("Mouse - 1 x $100.00", output)
+        
+         
+        #"Before any discounts and the amount will become £1045"
+        expected_total_before_discount = 1045
+        expected_final_price = 574.75 
+        self.assertIn(f"Total before discount: ${expected_total_before_discount:.2f}", output) #It seems the code for taking $50 off before discounts doesn't work as intended
+        self.assertIn(f"Final price after discounts: ${expected_final_price:.2f}", output)
+
+#10. The system shall display an error message if the credit card number does not meet the 16-digit requirement or if the transaction amount is zero or negative, preventing the transaction from proceeding.
+    def test_invalid_card_number(self):
+        payment_service = PaymentService() #I am calling these locally just to be safe
+        inventory_service = InventoryService()
+        discount_service = DiscountService()
+        cart = ShoppingCart(self.customer, discount_service)
+        cart.add_item(CartItem(self.product_one, 1))  # Add only this item to the cart
+        
+        order_service = OrderService(payment_service, inventory_service)
+        
+        result = order_service.place_order(cart, "1234567891234")  # Invalid card number (14 digits)
+        self.assertFalse(result, "Expected false as credit card num is too short") #Doesn't assert false!
+
+    #This is what is needed for the test to pass, a product with no cost and a credit card not 16 digits long
+    def test_card_number_pass(self):
+        payment_service = PaymentService() #I am calling these locally just to be safe
+        inventory_service = InventoryService()
+        discount_service = DiscountService()
+        cart = ShoppingCart(self.customer, discount_service)
+        product = Product("Flying Pig", 0, 1) #This product shouldn't exist
+        cart.add_item(CartItem(product, 1))  # Add only this item to the cart
+        
+        order_service = OrderService(payment_service, inventory_service)
+        
+
+
+        result = order_service.place_order(cart, "1234567891234")  # Invalid card number (14 digits)
+        self.assertFalse(result, "Expected false as credit card num is too short")
+
