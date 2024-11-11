@@ -98,17 +98,52 @@ class testSystemRequirements(unittest.TestCase):
         self.assertEqual(actual_total, expected_total, msg="The discount amount isnt correct")
         #I honestly do not know how the discount is so large for this, could be my mistake (I wrote this before i read the Discount class)
        
-        
+    #The same test as the previous, but has 2 mice in the cart, which is neccessary in its current implementation to get the mouse discount to activate.
+    def test_apply_bundle_discount_with_current_logic(self):
+        #Any time you see I have added disocunt service locally, it is because using the mock caused issues with the assertions
+        discount_service = DiscountService() 
+        self.cart = ShoppingCart(self.customer, discount_service)
+        #The discount service only works if two laptops are in the cart
+        #But adding two to the cart at the same time doesn't work, they need to be added seperately
+        self.cart.add_item(CartItem(self.product_one, 1))  # 1 laptop
+        self.cart.add_item(CartItem(self.product_one, 1))  #another laptop
+
+        self.cart.add_item(CartItem(self.product_two, 1))  # 1 Mouse
+
+        self.cart.set_promotion_active(False)  # Just making sure no discount is called
+        self.cart.apply_coupon_code("") #I do not understand why this is needed but it breaks without it
+        total_before_discount = self.cart.calculate_total()  
+        mouse_discount = self.product_two.get_price() * 0.05  # 5% off Mouse price (Code coverage shows this calculation did run)
+        expected_total = total_before_discount - mouse_discount  # should be 1,023.75
+
+
+        # Call calculate_final_price to trigger the discount logic
+        actual_total = self.cart.calculate_final_price()
+
+        # Assert that the total after discount is equal to the expected final price
+        self.assertEqual(actual_total, expected_total, msg="The discount amount isnt correct")
+
+
       
 #4. The system shall apply tiered discounts based on the total cart value, with predefined discount levels (10% for over £1,000, 15% for over £5,000, and 20% for over £10,000).
-    def test_apply_tiered_discount_1000(self):
-        self.cart.add_item(CartItem(self.product_one, 1)) 
+    def test_apply_tiered_discount_1001(self):
+        product = Product("something somewhat expensive", 1001.00, 10)
+        self.cart.add_item(CartItem(product, 1)) 
         discount_service = DiscountService() #Had to add this locally to get this to work 
-        actual_total = discount_service.apply_discount(self.product_one.get_price(), CustomerType.REGULAR, self.cart.get_items(), "")
-        expected_total = self.product_one.get_price() * 0.90
-        self.assertEqual(actual_total, expected_total, msg="discount is not equal to 10%") 
+        actual_total = discount_service.apply_discount(product.get_price(), CustomerType.REGULAR, self.cart.get_items(), "")
+        expected_total = product.get_price() * 0.90
+        self.assertAlmostEqual(actual_total, expected_total, places=2, msg="discount is not equal to 10%") #places = 2 to round values to float
 
-    #After the last test, it became obvious the 10% discount was not possible, especially obvious when looking at the discount service logic. 
+
+    def test_apply_tiered_discount_5001(self):
+        product = Product("something expensive", 5001.00, 10)
+        self.cart.add_item(CartItem(product, 1)) 
+        discount_service = DiscountService() #Had to add this locally to get this to work 
+        actual_total = discount_service.apply_discount(product.get_price(), CustomerType.REGULAR, self.cart.get_items(), "")
+        expected_total = product.get_price() * 0.85 #15% discount
+        self.assertAlmostEqual(actual_total, expected_total, places = 2, msg="discount is not equal to 15%") #using almostequal as python has a meltdown caluclating 15% off 5001 (4250.849999999999)
+
+    #After the last two tests, it became obvious the 10% discount was not possible, especially obvious when looking at the discount service logic. 
 
     # This test is the only way to get 15%.
     def test_apply_tiered_discount_10001(self):
@@ -117,7 +152,7 @@ class testSystemRequirements(unittest.TestCase):
         discount_service = DiscountService() #Had to add this locally to get this to work 
         actual_total = discount_service.apply_discount(product.get_price(), CustomerType.REGULAR, self.cart.get_items(), "")
         expected_total = product.get_price() * 0.80
-        self.assertEqual(actual_total, expected_total, msg="discount is not equal to 20%") #Discount is actually 25% currently
+        self.assertAlmostEqual(actual_total, expected_total, places =2, msg="discount is not equal to 20%") #Discount is actually 25% currently
 
 
 #5. The system shall categorize customers into three types: Regular, Premium, and VIP, with Premium customers receiving an additional 5% discount and VIP customers receiving an additional 10% discount on their total.
@@ -127,7 +162,7 @@ class testSystemRequirements(unittest.TestCase):
         actual_total = discount.apply_discount(self.cart.calculate_total(),self.customer.get_customer_type(),self.cart.get_items(),"")
         expected_total = self.cart.calculate_total() #0% off
         #Funnily enough a regular customer is getting the best deal. The 20% meant for large purchases + 10% for VIP
-        self.assertAlmostEqual(actual_total, expected_total, places=2, msg="VIP customer discount not applied correctly.") #Using assertAlmostEqual in case of some rounding errors
+        self.assertEqual(actual_total, expected_total, msg="VIP customer discount not applied correctly.") #Using assertAlmostEqual in case of some rounding errors
 
     def test_premium_customer_discount(self):
         self.customer = Customer("Samuel Harwood", CustomerType.PREMIUM)
@@ -136,7 +171,7 @@ class testSystemRequirements(unittest.TestCase):
         discount = DiscountService()
 
         actual_total = discount.apply_discount(cart.calculate_total(),self.customer.get_customer_type(),cart.get_items(),"")
-        expected_total = cart.calculate_total() * 0.95 #Before discount + 5% off
+        expected_total = cart.calculate_total() * 0.95 #5% off
         #This fails as a 20% discount is being added due to its price being below £10,000. Technically, the 5% is being added correctly, but the test still fails
         self.assertEqual(actual_total, expected_total, msg="Premium customer discount not applied correctly.") 
 
@@ -148,7 +183,7 @@ class testSystemRequirements(unittest.TestCase):
         discount = DiscountService()
 
         actual_total = discount.apply_discount(cart.calculate_total(),self.customer.get_customer_type(),cart.get_items(),"")
-        expected_total = cart.calculate_total() * 0.90 #Before discount + 10% off
+        expected_total = cart.calculate_total() * 0.90 #10% off
         self.assertEqual(actual_total, expected_total,msg="VIP customer discount not applied correctly.") 
 
 #6. The system shall allow users to enter coupon codes, which can provide additional percentage-based or fixed-amount discounts (10% off with code "DISCOUNT10" or £50 off with code "SAVE50"). 
