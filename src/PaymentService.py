@@ -4,4 +4,4 @@ class PaymentService:
         # Simulating payment processing
         if len(credit_card_number) != 16 and amount <= 0:
             raise Exception("Payment failed: Invalid card or amount.")
-        return True
+        return True 
