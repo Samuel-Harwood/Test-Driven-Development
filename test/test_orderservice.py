@@ -55,8 +55,8 @@ class testOrderService(unittest.TestCase):
 
 
     #An exmaple of how to go about using patches
-    #This code is not complex enough to need these, and as mocks are built-in to our setup
-    #They're not neccessary. But I added them to show how they could be used
+    #This code is not complex enough to need these, and as mocks are built-in to our setup..
+    #they're not neccessary. But I added them to show how they could be used
     @patch('src.PaymentService.PaymentService') 
     @patch('src.InventoryService.InventoryService') 
     def test_place_order_fail_stock_not_updated(self, mock_inventory_service, mock_payment_service):
@@ -65,7 +65,8 @@ class testOrderService(unittest.TestCase):
 
         self.assertFalse(order_service.place_order(self.cart, self.credit_card_number)) #Fail to place an order
         mock_payment_service.process_payment.assert_called_once_with(self.credit_card_number, self.cart.calculate_total()) #confirm payment was processed
-        mock_inventory_service.update_stock.assert_not_called() #Stock shouldn't be updated if the order isn't placed
+        mock_inventory_service.update_stock.assert_not_called() #Stock shouldn't be updated if the order isn't placed 
+        #self.assertEqual(mock_inventory_service.update_stock.call_count, 2) #(or maybe the stock should be re-updated to original value once failed)
 
 
     def test_place_order_empty_cart(self):

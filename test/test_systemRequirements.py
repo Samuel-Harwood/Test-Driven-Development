@@ -163,7 +163,7 @@ class testSystemRequirements(unittest.TestCase):
         actual_total = discount.apply_discount(cart.calculate_total(),self.customer.get_customer_type(),cart.get_items(),"")
         expected_total = cart.calculate_total() * 0.95 #5% off
         #This fails as a 20% discount is being added due to its price being below £10,000. Technically, the 5% is being added correctly, but the test still fails
-        self.assertEqual(actual_total, expected_total, msg="Premium customer discount not applied correctly.") 
+        self.assertEqual(actual_total, expected_total, msg="Premium customer discount not applied correctly.")
 
     #Slightly different issue, the customer discount for VIP has a logic error with !=
     def test_vip_customer_discount(self):
@@ -191,7 +191,6 @@ class testSystemRequirements(unittest.TestCase):
         discount = DiscountService()
         cart = ShoppingCart(self.customer, discount) 
         cart.add_item(CartItem(self.product_one, 1))
-        #I just copied this test from the last one, just changed the discount type
         actual_total = discount.apply_discount(cart.calculate_total(),self.customer.get_customer_type(),cart.get_items(),"SAVE50") #Use save50 discount
         expected_total = cart.calculate_total() - 50 #Should just be -50, no over discount should take place
         self.assertEqual(actual_total, expected_total, msg="Price not proportional to discount") 
@@ -200,7 +199,7 @@ class testSystemRequirements(unittest.TestCase):
     def test_coupon_code_save_50_edge_case(self):
         discount = DiscountService()
         cart = ShoppingCart(self.customer, discount) 
-        cheap_product = Product("PEZ dispenser", 10.00, 10) #It costs less than promotion takes off the price
+        cheap_product = Product("PEZ dispenser", 49.00, 10) #It costs less than promotion takes off the price
         cart.add_item(CartItem(cheap_product, 1))
         #To solve this, a check should take place to make sure the carts total is above a certain threshold before adding discounts
         #I think a value error would make the most sense, which is why I added it below
@@ -218,16 +217,17 @@ class testSystemRequirements(unittest.TestCase):
         cart.set_promotion_active(True)
 
         actual_total = cart.calculate_final_price()
-        expected_value = cart.calculate_total() * 0.75  
-        #I am surprised this one actually passes This might just be my implementation is wrong? please let me know
+        expected_value = cart.calculate_total() * 0.75 #25% discount
+        #I am surprised this one actually passes This might just be my test implementation is wrong? please let me know
         self.assertEqual(actual_total, expected_value, msg="Promotion discount should be 25% off base price")
+
 
 #8. The discounts listed in points 3 to 7 are applied on top of each other in the order they have been specified. 
     def test_apply_multiple_discounts(self):
         self.customer = Customer("Samuel HArwood", CustomerType.VIP)  # VIP customer
         self.cart = ShoppingCart(self.customer, DiscountService())
         self.cart.add_item(CartItem(self.product_one, 1))  # 1 Laptop
-        self.cart.add_item(CartItem(self.product_two, 1))  # 1 Mouse
+        self.cart.add_item(CartItem(self.product_two, 1))  # 1 Mouse (5% discount)
         
         self.cart.apply_coupon_code("DISCOUNT10")  # 10% off with coupon code
         self.cart.set_promotion_active(True)
@@ -237,7 +237,6 @@ class testSystemRequirements(unittest.TestCase):
         # Calculate the expected final price step by step
         mouse_discount = self.product_two.get_price() * 0.05  # 5% off Mouse price
         total_after_mouse_discount = total_before_discounts - mouse_discount  # Apply mouse discount
-
         vip_discount = total_after_mouse_discount * 0.90  # 10% off
         coupon_discount = vip_discount * 0.90  # 10% off for coupon
         expected_value = coupon_discount * 0.75  # Another 25% off for the promotion
@@ -245,19 +244,18 @@ class testSystemRequirements(unittest.TestCase):
         actual_value = self.cart.calculate_final_price() #10% coupon, %5 off mouse, %10 VIP, 
 
         self.assertEqual(actual_value, expected_value, msg="The cumulative discounts were not applied correctly.")
-        #This test was obviously never going to work as theres no implementation to ensure these stack correctly. 
         #Its about £150 out, so with the logic corrected, might actually return True
 
+
 #9. The system shall print a detailed receipt summarizing the items in the cart, the total price before discounts, and the final price after all applicable discounts. 
-    @patch('sys.stdout', new_callable=StringIO)
+    @patch('sys.stdout', new_callable=StringIO) #Finally a use for patches!
     def test_print_receipt(self, output):
         #A purchase of a keyboard, with no active discounts or promotions by a REGULAR customer, SHOULD be full price
         discount = DiscountService()
         cart = ShoppingCart(self.customer, discount)
         cart.add_item(CartItem(self.product_three, 1)) #keyboard, $45
 
-
-        cart.set_promotion_active(True)
+        cart.set_promotion_active(False)
         cart.apply_coupon_code("") 
         cart.print_receipt()
         
@@ -316,11 +314,11 @@ class testSystemRequirements(unittest.TestCase):
         inventory_service = InventoryService()
         discount_service = DiscountService()
         cart = ShoppingCart(self.customer, discount_service)
-        product = Product("Flying Pig", 0, 1) #This product shouldn't exist
+        product = Product("Flying Pig", 0, 1) #This product shouldn't exist, its free!
         cart.add_item(CartItem(product, 1))  # Add only this item to the cart
         
         order_service = OrderService(payment_service, inventory_service)
 
         result = order_service.place_order(cart, "1234567891234")  # Invalid card number (14 digits)
-        self.assertFalse(result, "Expected false as credit card num is too short")
+        self.assertFalse(result, "Expected false as both credit card num is too short and cart has no value") #Does assert false
 
